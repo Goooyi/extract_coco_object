@@ -1,3 +1,6 @@
 ori_img
 seg_img
+bbox_img
+crop_instance
+binary_mask
 __pycache__

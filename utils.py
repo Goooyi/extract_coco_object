@@ -1,3 +1,4 @@
+import cv2
 import numpy as np
 
 def apply_mask(image, mask, alpha=0.5):
@@ -11,3 +12,6 @@ def apply_mask(image, mask, alpha=0.5):
                                   image[:, :, c])
     # image = (1 - alpha) * image + alpha * mask
     return ic
+
+def binary_masking(img, height, mask):
+    pass
