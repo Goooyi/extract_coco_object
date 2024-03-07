@@ -3,4 +3,5 @@ seg_img
 bbox_img
 crop_instance
 binary_mask
+tmp_stageConvert
 __pycache__

@@ -1,8 +1,10 @@
+from PIL import Image
 import matplotlib.pyplot as plt
 import numpy as np
 import time
 import cv2
 import os
+import doxapy
 
 from pycocotools.coco import COCO
 from utils import *
@@ -25,11 +27,11 @@ save_bbox = False
 save_crop = True
 save_binary_mask = True # only if save_crop is True
 expanded_width = 40
-expanded_height = 40
+expanded_height = 10
 
 coco = COCO(ann_file)
-# catIds = coco.getCatIds(catNms=['barrier', 'bendy', 'stop_line', 'crosswalk', 'RA_left_right', 'TFL_red']) #Add more categories ['person','dog']
-catIds = coco.getCatIds(catNms=['crosswalk']) #Add more categories ['person','dog']
+catIds = coco.getCatIds(catNms=['barrier', 'bendy', 'stop_line', 'crosswalk', 'RA_left_right', 'TFL_red']) #Add more categories ['person','dog']
+# catIds = coco.getCatIds(catNms=['crosswalk']) #Add more categories ['person','dog']
 
 
 for catId in catIds:
@@ -71,9 +73,14 @@ for catId in catIds:
 				w = int(w)
 				h = int(h)
 				if w <= 0: # only happens for stop line
-					w = expanded_width
+					continue
+				if category["name"] == "stop_line" and w < h:
+					continue
 				if h <= 0: # only happens for stop line
-					h = expanded_height
+					h = expanded_height // 2
+					y = y - (expanded_height // 2)
+					if y < 0:
+						y = 0
 				x_tmp = min(img["width"], x+w)
 				y_tmp = min(img["height"], y+h)
 				crop = original_img[y:y_tmp, x:x_tmp]
@@ -81,14 +88,22 @@ for catId in catIds:
 				if save_binary_mask:
 					if not os.path.exists(os.path.join(crop_output_path, str(category["name"]), image_folder_name + "_binary_mask")):
 						os.makedirs(os.path.join(crop_output_path, str(category["name"]), image_folder_name + "_binary_mask"))
+
 					# first appl Bilateral Filtering to reduce noise
 					blur = cv2.bilateralFilter(crop, 9, 75, 75)
+					# blur = cv2.GaussianBlur(crop, (5, 5), 0)
 					# bgr to gray
 					blur = cv2.cvtColor(blur, cv2.COLOR_BGR2GRAY)
 					# then apply Otsu Binarization
 					instance_mask = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
-					# global thresholding sice road marking is white
+					# # apply adaptive gaussian threshold
+					# instance_mask = cv2.adaptiveThreshold(blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 23, 2)
+					# # global thresholding sice road marking is white
 
+
+					if category["name"] in ['barrier', 'bendy', 'TFL_red']:
+						# mask all
+						instance_mask = np.ones(instance_mask.shape, dtype=np.uint8) * 255
 					cv2.imwrite(os.path.join(crop_output_path, str(category["name"]), image_folder_name + "_binary_mask", str(idx)+'.jpg'), instance_mask)
 		if save_bbox:
 			if not os.path.exists(os.path.join(bbox_output_path, str(category["name"]))):
