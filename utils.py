@@ -3,6 +3,17 @@ import yaml
 import time
 import numpy as np
 
+def unixTime2Date(unixTime):
+    if type(unixTime) == str:
+        unixTime = int(unixTime)
+
+    time1 =  time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime(unixTime))
+    # change time format to UTC/GMT+08:00
+    time1 = time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime(unixTime+8*3600))
+    tmp = list(time1.split("-"))
+    time2 = tmp[0] + tmp[1] + tmp[2]
+    return time1, time2
+
 def apply_mask(image, mask, alpha=0.5):
     """Apply the given mask to the image.
     """
@@ -21,7 +32,7 @@ def binary_masking(img, height, mask):
 def create_default_json():
     default_json = {
         "info": {
-            "version": "1.0",
+            "format_version": "1.0",
             "description": "Exported from Stage 1 annotation",
             "contributor": "appen",
             "date_created": "2024-03-17 09:48:27"
@@ -39,7 +50,7 @@ def create_default_json():
 		    	"rect":["traffic_sign", "traffic_light", "road_arrow"]
 		    },
 		    {
-		    	"line": ["lane", "road_boundary", "stop_line", "cross_walk"]
+		    	"line": ["lane", "road_boundary", "stop_line", "cross_walk", "no_parking_area"]
 		    },
 		    {
 		    	"point": ["intersection"]
@@ -94,7 +105,8 @@ def fill_2d_anno(json_dict, anns, cam_name):
             new_anno_entry = create_rect_entry(instance, cam_name, is_tfl)
         elif instance["category"] in ["lane", "road_boundary", "stop_line", "cross_walk"]:
             is_lane = True if instance["category"] == "lane" else False
-            new_anno_entry = create_line_entry(instance, cam_name, is_lane)
+            is_road_boundary = True if instance["category"] == "road_boundary" else False
+            new_anno_entry = create_line_entry(instance, cam_name, is_lane, is_road_boundary)
         elif instance["category"] in ["intersection"]:
             new_anno_entry = create_point_entry(instance, cam_name)
 
@@ -113,16 +125,158 @@ def fill_3d_anno(json_dict, anns):
     return json_dict
 
 def create_3dbbox_entry(instance):
+
+    activity = instance["labelsObj"]["activity"] if instance["labelsObj"] is not None else None
+    visibility = instance["labelsObj"]["visibility"] if instance["labelsObj"] is not None else None
     res = {
         "id": instance["id"],
         "category": instance["category"],
-        "activity": instance["labelsObj"]["activity"],
-        "visibility": instance["labelsObj"]["visibility"],
+        "activity": activity,
+        "visibility": visibility,
         "pointCount": instance["pointCount"]["lidar"],
         "truncated": [],
         "position": instance["position"],
         "dimension": instance["dimension"],
-        "quaternion": instance["quaternion"]
+        "quaternion": instance["quaternion"],
+        "taillight": {
+					"left": {
+						"occlusion": "",
+						"status": ""
+					},
+					"right": {
+						"occlusion": "",
+						"status": ""
+					},
+					"brake": {
+						"occlusion": "",
+						"status": ""
+					}
+
+				},
+        "wheel": {
+					"left_front": {
+						"occlusion": "",
+                        "bbox": [
+                            {
+                                "x": 999999,
+                                "y": 999999
+                            },
+                            {
+                                "x": 999999,
+                                "y": 999999
+                            }
+                        ]
+					},
+					"left_middle": {
+						"occlusion": "",
+                        "bbox": [
+                            {
+                                "x": 999999,
+                                "y": 999999
+                            },
+                            {
+                                "x": 999999,
+                                "y": 999999
+                            }
+                        ]
+					},
+					"left_back": {
+						"occlusion": "",
+                        "bbox": [
+                            {
+                                "x": 999999,
+                                "y": 999999
+                            },
+                            {
+                                "x": 999999,
+                                "y": 999999
+                            }
+                        ]
+					},
+					"right_front": {
+						"occlusion": "",
+                        "bbox": [
+                            {
+                                "x": 999999,
+                                "y": 999999
+                            },
+                            {
+                                "x": 999999,
+                                "y": 999999
+                            }
+                        ]
+					},
+					"right_middle": {
+						"occlusion": "",
+                        "bbox": [
+                            {
+                                "x": 999999,
+                                "y": 999999
+                            },
+                            {
+                                "x": 999999,
+                                "y": 999999
+                            }
+                        ]
+					},
+					"right_back": {
+						"occlusion": "",
+                        "bbox": [
+                            {
+                                "x": 999999,
+                                "y": 999999
+                            },
+                            {
+                                "x": 999999,
+                                "y": 999999
+                            }
+                        ]
+					}
+				},
+        "wheel_point": {
+					"left_front": {
+						"occlusion": "",
+						"point": {
+							"x": 999999,
+							"y": 999999
+                 		}
+					},
+					"left_back": {
+						"occlusion": "",
+						"point": {
+							"x": 999999,
+							"y": 999999
+                 		}
+					},
+					"right_front": {
+						"occlusion": "",
+						"point": {
+							"x": 999999,
+							"y": 999999
+                 		}
+					},
+					"right_back": {
+						"occlusion": "",
+						"point": {
+							"x": 999999,
+							"y": 999999
+                 		}
+					},
+					"front": {
+						"occlusion": "",
+						"point": {
+							"x": 999999,
+							"y": 999999
+                 		}
+					},
+					"back": {
+						"occlusion": "",
+						"point": {
+							"x": 999999,
+							"y": 999999
+                 		}
+					}
+				}
     }
     # replace "."  with “_”
     res["category"] = res["category"].replace(".", "_")
@@ -135,12 +289,19 @@ def create_rect_entry(instance, cam_name, is_tfl):
     w = instance["children"][0]["cameras"][0]["frames"][0]["shape"]["width"]
     h = instance["children"][0]["cameras"][0]["frames"][0]["shape"]["height"]
 
+    category = ""
+    occlusion = ""
+    truncated = ""
+    if instance["attributes"]:
+        category = instance["attributes"]["type"] if "type" in instance["attributes"].keys() else "unknown"
+        occlusion = instance["attributes"]["occlusion"] if "occlusion" in instance["attributes"].keys() else "0"
+        truncated = instance["attributes"]["truncated"] if "truncated" in instance["attributes"].keys() else "0"
     res = {
         "id": instance["id"],
         "cam_name": cam_name,
-        "category": instance["attributes"]["type"] if "type" in instance["attributes"].keys() else "unknown",
-        "occlusion": instance["attributes"]["occlusion"] if "occlusion" in instance["attributes"].keys() else "0",
-        "truncated": instance["attributes"]["truncated"] if "truncated" in instance["attributes"].keys() else "0",
+        "category": category,
+        "occlusion": occlusion,
+        "truncated": truncated,
         "bbox": [{
                     "x": x,
                     "y": y
@@ -152,12 +313,14 @@ def create_rect_entry(instance, cam_name, is_tfl):
                  ]
     }
     if is_tfl:
-        direction = instance["attributes"]["direction"] if "direction" in instance["attributes"].keys() else instance["attributes"]["方向"]
+        direction_cn = instance["attributes"]["方向"] if "方向" in instance["attributes"].keys() else None
+        direction = instance["attributes"]["direction"] if "direction" in instance["attributes"].keys() else direction_cn
         res["master_slave"] = 0
-        res["color"] = instance["attributes"]["color"]
+        color = instance["attributes"]["color"] if "color" in instance["attributes"].keys() else None
+        res["color"] = color
         res["direction"] = direction
     return res
-def create_line_entry(instance, cam_name, is_lane):
+def create_line_entry(instance, cam_name, is_lane, is_road_boundary):
     points = []
     for point in instance["children"][0]["cameras"][0]["frames"][0]["shape"]["points"]:
         tmp_p = {
@@ -176,18 +339,27 @@ def create_line_entry(instance, cam_name, is_lane):
     if is_lane:
         res["category"] = instance["attributes"]["linetype"]
         res["color"] = instance["attributes"]["color"]
+    if is_road_boundary:
+        res["texture"] = ""
 
     return res
 
 def create_point_entry(instance, cam_name):
-    cateName = "conflux" if instance["categoryName"] == "交汇点" else "split"
-    if instance["categoryName"] != "交汇点":
-        print(instance["categoryName"])
+    # cateName = "conflux" if instance["categoryName"] == "交汇点" else "split"
+    if instance["attributes"]["id"]=='0':
+        cateName = "conflux"
+    elif instance["attributes"]["id"] == "1":
+        cateName = "split"
+    else:
+        raise ValueError("F**")
+    # if instance["categoryName"] != "交汇点":
+    #     print(instance["categoryName"])
     res = {
         "id": instance["id"],
         "cam_name": cam_name,
         "category": cateName,
-        "point": instance["children"][0]["cameras"][0]["frames"][0]["shape"]
+        "point": instance["children"][0]["cameras"][0]["frames"][0]["shape"],
+        "constitute": []
     }
     return res
 
@@ -196,15 +368,20 @@ def correct_traffic_light(json_dict):
         return json_dict
 
     ins = json_dict["annotations"]["traffic_light"]
+    visited = [0] * len(ins)
     for i in range(len(ins)):
+        if visited[i] == 1:
+            continue
+        visited[i] = 1
         # correct master-slave relationship, if a bbox cover other bbox, the bigger bbox is master and smaller box is slave
         for j in range(i+1, len(ins)):
             master_slave_state = check_master_slave(ins[i]["bbox"], ins[j]["bbox"])
             if master_slave_state == 1:
-                ins[i]["master_slave"] = 1
-                ins[j]["id"] = ins[i]["id"]
-            elif master_slave_state == 2:
                 ins[j]["master_slave"] = 1
+                ins[j]["id"] = ins[i]["id"]
+                visited[j] = 1
+            elif master_slave_state == 2:
+                ins[i]["master_slave"] = 1
                 ins[i]["id"] = ins[j]["id"]
 
 
@@ -225,7 +402,7 @@ def check_master_slave(bbox1, bbox2):
     else:
         return 0
 
-def correct_vehicle_in_vehicle(json_dict, anns):
+def correct_vehicle_in_vehicle(json_dict):
     vehicle_in_vehicle_list = []
     if "obstacle" not in json_dict["annotations"].keys():
         return json_dict
@@ -235,43 +412,61 @@ def correct_vehicle_in_vehicle(json_dict, anns):
     if len(vehicle_in_vehicle_list) == 0:
         return json_dict
 
-    pool = []
-    for item in anns["frames"][0]["relations"]:
-        found = False
-        fromm = item["from"]
-        too = item["to"]
-        for poo in pool:
-            if fromm in poo:
-                found = True
-                poo.append(too)
-            elif too in poo:
-                found = True
-                poo.append(fromm)
+    total_list = json_dict["annotations"]["obstacle"]
 
-        if not found:
-            pool.append([fromm, too])
+    visited = [0] * len(vehicle_in_vehicle_list)
+    for idx, target in enumerate(vehicle_in_vehicle_list):
+        if visited[idx] == 1:
+            continue
+        visited[idx] = 1
+        master_idx = find_3d_master(target, vehicle_in_vehicle_list, total_list)
+        if master_idx != -1:
+            visited[master_idx] = 1
+            master_item = vehicle_in_vehicle_list[master_idx]
+            json_dict["annotations"]["obstacle"][target]["id"] = json_dict["annotations"]["obstacle"][master_item]["id"]
 
-    counter = 0
-    for idx in vehicle_in_vehicle_list:
-        master_id = find_3d_master(json_dict["annotations"]["obstacle"][idx]["id"], anns["frames"][0]["relations"], pool)
-        if master_id:
-            json_dict["annotations"]["obstacle"][idx]["id"] = master_id
-            counter += 1
-    if counter != len(vehicle_in_vehicle_list):
-        print("counter: ", counter)
-        print("vehicle_in_vehicle_list: ", len(vehicle_in_vehicle_list))
-        raise ValueError("missmatch")
+
+    if sum(visited) != len(vehicle_in_vehicle_list):
+        raise ValueError(f"missmatch, vehicle_in_vehicle_list: {len(vehicle_in_vehicle_list)}, counter: {sum(visited)} ")
     return json_dict
 
-def find_3d_master(id, relations, pool):
-    found_pool = False
-    target_idx = None
-    for idx, item in enumerate(pool):
-        if id in item:
-            found_pool = True
-            target_idx = idx
-            break
-    if found_pool:
-        return pool[target_idx][0]
+def find_3d_master(target, vehicle_in_vehicle_list, total_list):
+    max_ratio = -1
+    max_idx = -1
+    for idx, item in enumerate(vehicle_in_vehicle_list):
+            ratio = check3DboxIOU(target, item, total_list)
+            if ratio > max_ratio:
+                max_ratio = ratio
+                max_idx = idx
+
+    return max_idx
+
+def check3DboxIOU(item1, item2, total_list):
+    bbox1 = [total_list[item1]["position"]["x"] - total_list[item1]["dimension"]["x"]/2,
+             total_list[item1]["position"]["x"] + total_list[item1]["dimension"]["x"]/2,
+             total_list[item1]["position"]["y"] - total_list[item1]["dimension"]["y"]/2,
+             total_list[item1]["position"]["y"] + total_list[item1]["dimension"]["y"]/2,
+             total_list[item1]["position"]["z"] - total_list[item1]["dimension"]["z"]/2,
+             total_list[item1]["position"]["z"] + total_list[item1]["dimension"]["z"]/2
+             ]
+    bbox2 = [total_list[item2]["position"]["x"] - total_list[item2]["dimension"]["x"]/2,
+             total_list[item2]["position"]["x"] + total_list[item2]["dimension"]["x"]/2,
+             total_list[item2]["position"]["y"] - total_list[item2]["dimension"]["y"]/2,
+             total_list[item2]["position"]["y"] + total_list[item2]["dimension"]["y"]/2,
+             total_list[item2]["position"]["z"] - total_list[item2]["dimension"]["z"]/2,
+             total_list[item2]["position"]["z"] + total_list[item2]["dimension"]["z"]/2
+             ]
+    if AincludeB(bbox2, bbox1):
+        # return area ratio
+        area_box1 = total_list[item1]["dimension"]["x"] * total_list[item1]["dimension"]["y"] * total_list[item1]["dimension"]["z"]
+        area_box2 = total_list[item2]["dimension"]["x"] * total_list[item2]["dimension"]["y"] * total_list[item2]["dimension"]["z"]
+        return area_box2 / area_box1
     else:
-        raise ValueError("missmatch")
+        return -1
+
+
+def AincludeB(bbox1, bbox2):
+    # xyz
+    if bbox1[0] < bbox2[0] and bbox1[1] > bbox2[1] and bbox1[2] < bbox2[2] and bbox1[3] > bbox2[3] and bbox1[4] < bbox2[4] and bbox1[5] > bbox2[5]:
+        return True
+    return False
