@@ -32,14 +32,14 @@ def binary_masking(img, height, mask):
 def create_default_json():
     default_json = {
         "info": {
-            "format_version": "1.0",
+            "format_version": "2.0",
             "description": "Exported from Stage 1 annotation",
             "contributor": "appen",
             "date_created": "2024-03-17 09:48:27"
         },
         "licenses": [
             {
-              "name": "AXERA"
+              "name": "AXERA TECH"
             }
         ],
         "categories": [
