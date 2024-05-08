@@ -75,8 +75,6 @@ for i in tqdm(range(len(names))):
             target = idx - 1
             break
     if target < 0:
-        print(back_up_folder)
-        print(name)
         raise ValueError("F** for")
     if target == 0 and bag_id >= bag_ids[-1]:
         target = -1
@@ -86,10 +84,10 @@ for i in tqdm(range(len(names))):
 
 
     # save json
-    final_outpath = os.path.join(output_path, bag_date, bag_id)
+    final_outpath = os.path.join(output_path, bag_date, bag_id, "ANNOTATION_manu")
     #create folder for final_outpath with parent if not exit:
     if not os.path.exists(final_outpath):
         os.makedirs(final_outpath)
     # save json
-    with open(os.path.join(output_path, bag_date, bag_id, name + '.json'), 'w') as f:
+    with open(os.path.join(output_path, bag_date, bag_id, "ANNOTATION_manu", name + '.json'), 'w') as f:
         json.dump(new_json, f)

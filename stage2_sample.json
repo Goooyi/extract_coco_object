@@ -574,7 +574,8 @@
             {
                 "cam_name": "FRONT",
                 "id": 0, #能区分就行
-                "category": "split, #取值范围["split", "conflux"]"points": {
+                "category": "split, #取值范围["split", "conflux"],
+                "point": {
                     "x": 892.751734,
                     "y": 453.177844
                 },

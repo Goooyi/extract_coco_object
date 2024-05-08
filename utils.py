@@ -1,3 +1,4 @@
+import os
 import cv2
 import yaml
 import time
@@ -339,6 +340,7 @@ def create_line_entry(instance, cam_name, is_lane, is_road_boundary):
     if is_lane:
         res["category"] = instance["attributes"]["linetype"]
         res["color"] = instance["attributes"]["color"]
+        res["lane_id"] = instance["attributes"]["id"]
     if is_road_boundary:
         res["texture"] = ""
 
@@ -347,9 +349,9 @@ def create_line_entry(instance, cam_name, is_lane, is_road_boundary):
 def create_point_entry(instance, cam_name):
     # cateName = "conflux" if instance["categoryName"] == "交汇点" else "split"
     if instance["attributes"]["id"]=='0':
-        cateName = "conflux"
+        cateName = "conflux_point"
     elif instance["attributes"]["id"] == "1":
-        cateName = "split"
+        cateName = "split_point"
     else:
         raise ValueError("F**")
     # if instance["categoryName"] != "交汇点":
@@ -358,7 +360,7 @@ def create_point_entry(instance, cam_name):
         "id": instance["id"],
         "cam_name": cam_name,
         "category": cateName,
-        "point": instance["children"][0]["cameras"][0]["frames"][0]["shape"],
+        "points": instance["children"][0]["cameras"][0]["frames"][0]["shape"],
         "constitute": []
     }
     return res
@@ -470,3 +472,19 @@ def AincludeB(bbox1, bbox2):
     if bbox1[0] < bbox2[0] and bbox1[1] > bbox2[1] and bbox1[2] < bbox2[2] and bbox1[3] > bbox2[3] and bbox1[4] < bbox2[4] and bbox1[5] > bbox2[5]:
         return True
     return False
+
+def change_ownership_and_permissions(path):
+    # Change ownership to current user
+
+    # Recursively change ownership and permissions
+    for root, dirs, files in os.walk(path):
+        for dir in dirs:
+            dir_path = os.path.join(root, dir)
+            os.chmod(dir_path, 0o777)
+
+        for file in files:
+            file_path = os.path.join(root, file)
+            os.chmod(file_path, 0o777)
+
+    # Change ownership and permissions of the root directory
+    os.chmod(path, 0o777)
