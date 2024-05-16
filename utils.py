@@ -343,6 +343,7 @@ def create_line_entry(instance, cam_name, is_lane, is_road_boundary):
         res["lane_id"] = instance["attributes"]["id"]
     if is_road_boundary:
         res["texture"] = ""
+        res["id"] = instance["attributes"]["id"]
 
     return res
 

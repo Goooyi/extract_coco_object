@@ -51,6 +51,7 @@ for category_folder in tqdm.tqdm(os.listdir(annotation_path)):
             frame_name = json_name.split(".json")[0]
             # 找到bag_id对应的包文件夹
             bag_id, bag_date = unixTime2Date(frame_name.split('.')[0])
+            # TODO 修改1分钟的逻辑
             target = 0
             for idx, bid in enumerate(bag_ids):
                 if bag_id <= bid:
