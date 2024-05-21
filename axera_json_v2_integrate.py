@@ -22,13 +22,18 @@ target_path = "/data/dataset/aXcellent/manu-label/v2/xcap001/"
 
 # 以上原因，先整合两个目录
 bag_ids_source = os.listdir(source_path)
-bag_ids_target = os.listdir(target_path)
+bag_ids_target = []
+for sub_folder in os.listdir(target_path):
+    if not os.path.isdir(os.path.join(target_path, sub_folder)):
+        continue
+    to_extend = os.listdir(os.path.join(target_path, sub_folder))
+    bag_ids_target.extend(to_extend)
 bag_ids_source.remove("delete")
 bag_ids = bag_ids_source + bag_ids_target
 bag_ids.sort()
 
 # 标注商对单个类目比如lane的标注位置，需要把同一帧的整合, 遍历这个文件夹的所有子目录
-annotation_path = "/backup/manu_label_v2/ANNOTATION/"
+annotation_path = "/backup/manu_label_v2/ANNOTATION/april"
 
 
 for category_folder in tqdm.tqdm(os.listdir(annotation_path)):
@@ -65,8 +70,8 @@ for category_folder in tqdm.tqdm(os.listdir(annotation_path)):
 
             if os.path.isdir(os.path.join(source_path,bag_id)):
                 output_json_path = os.path.join(source_path,bag_id)
-                if os.path.exists(os.path.join(target_path,bag_date,bag_id)):
-                    continue
+                # if os.path.exists(os.path.join(target_path,bag_date,bag_id)):
+                #     continue
             else:
                 continue
                 output_json_path = os.path.join(target_path,bag_id)
@@ -103,6 +108,8 @@ for category_folder in tqdm.tqdm(os.listdir(annotation_path)):
             if not os.path.exists(os.path.join(save_path,bag_id)):
                 shutil.copytree(output_json_path, os.path.join(save_path,bag_id))
             # 保存整个的json文件
+            if not os.path.exists(os.path.join(save_path,bag_id,"ANNOTATION_manu")):
+                os.makedirs(os.path.join(save_path,bag_id,"ANNOTATION_manu"))
             with open(os.path.join(save_path,bag_id,"ANNOTATION_manu",frame_name + '.json'), 'w') as f:
                 json.dump(new_json, f)
 
