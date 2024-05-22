@@ -34,7 +34,7 @@ last_path = ""
 for idx, bag in enumerate(tqdm.tqdm(bag_folder)):
     json_path = os.path.join(bag, "ANNOTATION_manu")
 
-    jpg_path = os.path.join(bag,"FRONT_rect")
+    jpg_path = os.path.join(bag,"FRONT")
     jpg_name_set = set()
     for jpg_name in os.listdir(jpg_path):
         jpg_name = jpg_name.split(".jpg")[0]
@@ -60,7 +60,7 @@ for idx, bag in enumerate(tqdm.tqdm(bag_folder)):
 
                 raw_path = os.path.join("/backup/v2_extract", new_bag_tag)
 
-                should_exist = os.path.join("/backup/v2_extract", new_bag_tag,"FRONT_rect", json_name + ".jpg")
+                should_exist = os.path.join("/backup/v2_extract", new_bag_tag,"FRONT", json_name + ".jpg")
                 if not os.path.exists(should_exist):
                     not_found_count += 1
                     raise ValueError("F**, not even found in /backup/v2_extract")
