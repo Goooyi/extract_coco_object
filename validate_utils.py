@@ -199,11 +199,49 @@ def check_traffic_light_annotations(json_data):
 def match_tfs_patterns(strrr):
     if strrr == "unknown" or strrr == "other":
         return True
-    patterns = [r'^pl.*', r'^pr.*', r'^p.*', r'^i.*']
+    patterns = [r'p[1234567]',r'pnl', r'pn', r'pl\d\d?', r'ph\d\.?\d?'
+                , r'pw\d\.?\dm', r'pa\d\d?t', r'pm\d\d?t'
+                , r'ps', r'pne', r'i\d[0,1,2]?', r'il\d\d', r'pr\d\d'
+                , r'p_other', r'i_other']
+                # , r'pm 49t', r'pa14', r'pm49', r'pm4.9t', r'pa13', r'ph未知', r'pm30', r'pw49t', r'pw30t', r'pl 5m', r'pm40', r'il 50', r'pl 80', r'pm20T', r'pl未知']
+    # signs = set(["p1", "p2", "p3", "p4", "p5", "p6", "p7"
+    #             , "pn", "pnl", "pl10", "pl20", "pl30"
+    #             , "pl25","pl15", "pl35", "pl45", "pl55"
+    #             , "pl40", "pl50", "pl60", "pl70", "pl80"
+    #             , "pl90", "pl100", "pl110", "pl120", "pl130"
+    #             , "ph0.5m", "ph1.2m", "ph1.5m", "ph1.6m"
+    #             , "ph1m", "ph2m", "ph3m", "ph4m"
+    #             , "ph1.8m", "ph2.0m", "ph2.5m", "ph3.0m", "ph3.5m"
+    #             , "ph4m", "ph4.5m", "ph5m", "ph5.5m", "ph6m"
+    #             , "pw0.5", "pw1.2", "pw1.6", "pw1.8", "pw2.0"
+    #             , "pm0.5t", "pm1.2t", "pm1.6t", "pm1.8t", "pm2.0t"
+    #             , "pm2.5t", "pm3.0t", "pm3.5t", "pm5t"
+    #             , "pa0.5t", "pa1.2t", "pa1.6t", "pa1.8t", "pa2.0t"
+    #             , "pa2.5t", "pa3.0t", "pa3.5t", "pa5t"
+    #             , "pa6t",  "pa8t",  "pa10t", "pa12t", "pa15t"
+    #             , "pa7t", "pa13t", "pa15t"
+    #             , "pa16t", "pa18t", "pa20t", "pa22t", "pa24t"
+    #             , "pa25t", "pa30t", "pa35t", "pa40t", "pa45t"
+    #             , "pm6t", "pm8t", "pm10t", "pm12t", "pm15t"
+    #             , "pm16t", "pm18t", "pm20t", "pm22t", "pm24t"
+    #             , "pm25t", "pm30t", "pm35t", "pm40t", "pm45t"
+    #             , "ps", "pne", "i1", "i2", "i3", "i4"
+    #             , "i5", "i6", "i7", "i8", "i9", "i10"
+    #             , "i11", "i12", "il5", "il10", "il15"
+    #             , "il15", "il20", "il25", "il30", "il35"
+    #             , "il40", "il45", "il50", "il55", "il60"
+    #             , "il65", "il70", "il75", "il80", "il85"
+    #             , "pr5", "pr15", "pr10"
+    #             , "pr15", "pr20", "pr25", "pr30", "pr35"
+    #             , "pr40", "pr45", "pr50", "pr55", "pr60"
+    #             , "pr65", "pr70", "pr75", "pr80", "pr85"
+    #             , "p_other", "i_other"])
 
     for pattern in patterns:
         if re.match(pattern, strrr):
             return True
+    # if strrr in signs:
+    #     return True
 
     return False
 def check_traffic_sign_annotations(json_data):

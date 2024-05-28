@@ -6,6 +6,11 @@ import json
 from tqdm import tqdm
 from utils import create_default_json, fill_img_camear_info, fill_2d_anno, fill_3d_anno, correct_traffic_light,correct_vehicle_in_vehicle,unixTime2Date
 
+bad_count01 = 0
+bad_count02 = 0
+
+frame_set = set()
+
 carid = "001"
 sensor_file_path = "/code/gn0/extract_coco_object/sensor.yaml"
 # reading all files name in one folder
@@ -81,7 +86,35 @@ for i in tqdm(range(len(names))):
     bag_id = bag_ids[target]
     # date_folder = os.path.json(output_path,bag_date)
     # list all folder name in date_folder
+    real_bag_id = bag_ids[target]
+    real_bag_id_candidate = bag_ids[target - 1]
+    real_bag_id_candidate_01 = bag_ids[target - 2]
 
+    should_exist_00 = os.path.join(back_up_folder, real_bag_id, "FRONT", name + ".jpg")
+    should_exist_01 = os.path.join(back_up_folder, real_bag_id_candidate, "FRONT", name + ".jpg")
+    should_exist_02 = os.path.join(back_up_folder, real_bag_id_candidate_01, "FRONT", name + ".jpg")
+
+    found = False
+    candidate = [should_exist_00, should_exist_01, should_exist_02]
+    for idx, path in enumerate(candidate):
+        if os.path.exists(path):
+            found = True
+            if idx == 0:
+                break
+            elif idx == 1:
+                bad_count01 += 1
+                if os.path.exists(os.path.join(output_path, bag_date, real_bag_id, "ANNOTATION_manu", name + ".json")):
+                    bad_count02 += 1
+                    os.remove(os.path.join(output_path, bag_date, real_bag_id, "ANNOTATION_manu", name + ".json"))
+                real_bag_id = real_bag_id_candidate
+                break
+            else:
+                real_bag_id = real_bag_id_candidate_01
+                break
+    if not found:
+        raise ValueError(f"F** not found for {name}, suppose bag_id is {real_bag_id} {real_bag_id_candidate} {real_bag_id_candidate_01}")
+
+    bag_id = real_bag_id
 
     # save json
     final_outpath = os.path.join(output_path, bag_date, bag_id, "ANNOTATION_manu")
@@ -89,5 +122,7 @@ for i in tqdm(range(len(names))):
     if not os.path.exists(final_outpath):
         os.makedirs(final_outpath)
     # save json
-    with open(os.path.join(output_path, bag_date, bag_id, "ANNOTATION_manu", name + '.json'), 'w') as f:
-        json.dump(new_json, f)
+    # with open(os.path.join(output_path, bag_date, bag_id, "ANNOTATION_manu", name + '.json'), 'w') as f:
+    #     json.dump(new_json, f)
+
+print(f"{bad_count01} {bad_count02}")

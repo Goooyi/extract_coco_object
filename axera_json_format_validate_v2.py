@@ -8,8 +8,15 @@ from validate_utils import *
 # with open(sys.argv[1], 'r') as f:
 #     json_data = json.load(f)
 # root_path = "/backup/manu_label_v2/ANNOTATION/roadmark_packet_01/FRONT__rect/"
-root_path = "/backup/manu_label_v2/ANNOTATION/lane_packet_01/FRONT_rect/"
+root_path = "/backup/manu_label_v2/ANNOTATION/april/traffic_packet_04/FRONT_rect/"
 
+# %% lint traffic sign
+for file in os.listdir(root_path):
+    file = os.path.join(root_path, file)
+    if file.endswith(".json"):
+        with open(file, 'r') as f:
+            json_data = json.load(f)
+        check_traffic_sign_annotations(json_data)
 
 # %% lint车道线
 for file in os.listdir(root_path):
@@ -46,13 +53,6 @@ for file in os.listdir(root_path):
             json_data = json.load(f)
         # check_obstacle_annotations(json_data)
         check_traffic_light_annotations(json_data)
-# %% lint traffic sign
-for file in os.listdir(root_path):
-    file = os.path.join(root_path, file)
-    if file.endswith(".json"):
-        with open(file, 'r') as f:
-            json_data = json.load(f)
-        check_traffic_sign_annotations(json_data)
 
 # %% lint road arrow
 for file in os.listdir(root_path):

@@ -9,9 +9,30 @@ import time
 start_time = time.time()
 file_count = 0
 frame_count = 0
+copy_count = 0
+total_file_size = 0
 
 # TODO:由于目前再转移数据，当前版本是全量检查+合并，后期数据多了改成增量
 frame_set = set()
+
+sub_folder_candidates = ["LIDAR_VCS"
+                        , "LIDAR_TOP"
+                        , "FRONT_WIDE_rect"
+                        , "FRONT_WIDE"
+                        , "FRONT_rect"
+                        , "FRONT"
+                        , "FISHEYE_RIGHT_rect"
+                        , "FISHEYE_RIGHT"
+                        , "FISHEYE_LEFT_rect"
+                        , "FISHEYE_LEFT"
+                        , "FISHEYE_FRONT_rect"
+                        , "FISHEYE_FRONT"
+                        , "FISHEYE_BACK_rect"
+                        , "FISHEYE_BACK"
+                        , "BACK_rect"
+                        , "BACK"
+                        , "FRONT_redist_new"
+                        , "ANNOTATION"]
 
 carid = "001"
 sensor_file_path = "/code/gn0/extract_coco_object/v2_xcap001_calibration.yaml"
@@ -30,13 +51,13 @@ for sub_folder in os.listdir(target_path):
     bag_ids_target.extend(to_extend)
 bag_ids_source.remove("delete")
 bag_ids = bag_ids_source + bag_ids_target
+bag_ids = list(set(bag_ids))
 bag_ids.sort()
 
 # 标注商对单个类目比如lane的标注位置，需要把同一帧的整合, 遍历这个文件夹的所有子目录
 annotation_path = "/backup/manu_label_v2/ANNOTATION/april"
 
-
-for category_folder in tqdm.tqdm(os.listdir(annotation_path)):
+for anno_folder_idx, category_folder in enumerate(tqdm.tqdm(os.listdir(annotation_path))):
     if category_folder.startswith("obstacle"):
         # 障碍物下面只有LIDAR_VCS文件夹
         sub_anno_folder = ["LIDAR_VCS"]
@@ -66,17 +87,45 @@ for category_folder in tqdm.tqdm(os.listdir(annotation_path)):
                 raise ValueError("F** for")
             if target == 0 and bag_id >= bag_ids[-1]:
                 target = -1
-            bag_id = bag_ids[target]
+            real_bag_id = bag_ids[target]
+            real_bag_id_candidate = bag_ids[target - 1]
+            real_bag_id_candidate_01 = bag_ids[target - 2]
 
-            if os.path.isdir(os.path.join(source_path,bag_id)):
-                output_json_path = os.path.join(source_path,bag_id)
+            should_exist_00 = os.path.join("/backup/v2_extract", real_bag_id, "FRONT_rect", frame_name + ".jpg")
+            should_exist_01 = os.path.join("/backup/v2_extract", real_bag_id_candidate, "FRONT_rect", frame_name + ".jpg")
+            should_exist_02 = os.path.join("/backup/v2_extract", real_bag_id_candidate_01, "FRONT_rect", frame_name + ".jpg")
+            should_exist_03 = os.path.join(target_path, bag_date, real_bag_id, "FRONT_rect", frame_name + ".jpg")
+            should_exist_04 = os.path.join(target_path, bag_date, real_bag_id_candidate, "FRONT_rect", frame_name + ".jpg")
+            should_exist_05 = os.path.join(target_path, bag_date, real_bag_id_candidate_01, "FRONT_rect", frame_name + ".jpg")
+
+            found = False
+            candidate = [should_exist_00, should_exist_01, should_exist_02, should_exist_03, should_exist_04, should_exist_05]
+            for idx, path in enumerate(candidate):
+                if os.path.exists(path):
+                    found = True
+                    if idx in [0, 3]:
+                        break
+                    elif idx in [1, 4]:
+                        real_bag_id = real_bag_id_candidate
+                        break
+                    else:
+                        real_bag_id = real_bag_id_candidate_01
+                        break
+
+            bag_id = real_bag_id
+
+            if not found:
+                raise ValueError(f"F** not found for {frame_name}, suppose bag_id is {real_bag_id} {real_bag_id_candidate} {real_bag_id_candidate_01}")
+
+            # if os.path.isdir(os.path.join(source_path,bag_id)):
+            #     output_json_path = os.path.join(source_path,bag_id)
                 # if os.path.exists(os.path.join(target_path,bag_date,bag_id)):
                 #     continue
-            else:
-                continue
-                output_json_path = os.path.join(target_path,bag_id)
-                if not os.path.isdir(output_json_path):
-                    raise ValueError("F** folder not exist?")
+            # else:
+            #     continue
+            #     output_json_path = os.path.join(target_path,bag_id)
+            #     if not os.path.isdir(output_json_path):
+            #         raise ValueError("F** folder not exist?")
 
             # create a new file if not created yet
             if frame_name not in frame_set:
@@ -106,10 +155,28 @@ for category_folder in tqdm.tqdm(os.listdir(annotation_path)):
                 os.makedirs(os.path.join(save_path))
             # 判断，需要拷贝整个文件vs只需要修改json文件
             if not os.path.exists(os.path.join(save_path,bag_id)):
-                shutil.copytree(output_json_path, os.path.join(save_path,bag_id))
+                # print(f"copy from {output_json_path} to {os.path.join(save_path,bag_id)}")
+                # shutil.copytree(output_json_path, os.path.join(save_path,bag_id))
+                os.makedirs(os.path.join(save_path,bag_id,"ANNOTATION_manu"))
             # 保存整个的json文件
             if not os.path.exists(os.path.join(save_path,bag_id,"ANNOTATION_manu")):
                 os.makedirs(os.path.join(save_path,bag_id,"ANNOTATION_manu"))
+            for sub_folder_candidate in sub_folder_candidates:
+                    file_ending = ".pcd" if sub_folder_candidate.startswith("LIDAR") else ".jpg"
+                    if sub_folder_candidate.startswith("ANNOTATION"):
+                        file_ending = ".json"
+                    if not os.path.exists(os.path.join(target_path, bag_date, bag_id, sub_folder_candidate, frame_name + file_ending)):
+                        #copy single file
+                        if os.path.exists(os.path.join("/backup/v2_extract", bag_id, sub_folder_candidate, frame_name + file_ending)):
+                            # check file size in gb
+                            total_file_size += os.path.getsize(os.path.join("/backup/v2_extract", bag_id, sub_folder_candidate, frame_name + file_ending)) / 1024 / 1024 / 1024
+                            # print(f"copy from {os.path.join("/backup/v2_extract", bag_id, sub_folder_candidate, frame_name + file_ending)} to {os.path.join(target_path, bag_date, real_bag_id, sub_folder_candidate, frame_name + file_ending)}")
+                            # make target parent folder if not exist
+                            if not os.path.exists(os.path.join(target_path, bag_date, bag_id, sub_folder_candidate)):
+                                os.makedirs(os.path.join(target_path, bag_date, bag_id, sub_folder_candidate))
+                            shutil.copy(os.path.join("/backup/v2_extract", bag_id, sub_folder_candidate, frame_name + file_ending)
+                                        , os.path.join(target_path, bag_date, bag_id, sub_folder_candidate, frame_name + file_ending))
+                            copy_count += 1
             with open(os.path.join(save_path,bag_id,"ANNOTATION_manu",frame_name + '.json'), 'w') as f:
                 json.dump(new_json, f)
 
@@ -121,4 +188,5 @@ end_time = time.time()
 execution_time = end_time - start_time
 
 print("Total number of frames processed:", frame_count)
+print(f"copy total {total_file_size} GB with {copy_count} files")
 print(f"Script executed in {execution_time:.2f} seconds for totoal {file_count} files")
